@@ -1,0 +1,36 @@
+load_cluster_code: 1
+#TODO: fill in paths
+
+#result_dir: 
+#resource_dir:
+#prerun_scripts_dir:
+#cluster_code_dir:
+
+max_ploidy: 4
+
+
+#options pruneVCF:
+#prune_vcf_winSize: 10000
+#prune_vcf_winDist: 0
+#prune_vcf_missing: 0.3
+#prune_vcf_minf: 0.05
+#prune_vcf_maxf: 0.95
+#prune_vcf_popFlagLength: 5
+prune_vcf_window_size: 100
+prune_vcf_max_ld: 0.2
+
+#options STRUCTURE and entropy
+#maximum numbers of clusters to infer
+max_K: 4
+#options STRUCTURE
+structure_replicate_runs: 3
+structure_burnin: 1000
+structure_numreps: 10000
+#options ENTROPY
+entropy_replicate_runs: 3
+entropy_burnin_b: 1000
+entropy_numreps_l: 10000
+entropy_store_n_step_t: 10
+
+
+

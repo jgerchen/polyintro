@@ -1,0 +1,3 @@
+include: "rules/entropy.smk"
+include: "rules/r_popgen.smk"
+
