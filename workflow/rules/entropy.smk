@@ -40,7 +40,7 @@ rule prune_vcf:
 rule make_entropy_input:
 	input:
 		vcf_pruned=config["temp_output"]+"/{species}_ld_pruned.vcf.gz",
-		ploidy_list="../resources/{species}_ploidies.lst",
+		ploidy_list=config["resource_dir"]+"/{species}_ploidies.lst",
 		PCA_PCs=config["temp_output"]+"/{species}_pca_pcs.tsv"
 	output:
 		entropy_input=config["temp_output"]+"/{species}_ld_pruned.mpgl",
@@ -97,7 +97,7 @@ rule run_structure:
 		NINDS=$(head -n 1 {input.entropy_input} | cut -d \" \" -f 1)
 		NLOCI=$(head -n 1 {input.entropy_input} | cut -d \" \" -f 2)
 		cp {input.structure_pruned} ${{temp_folder}}/structure_input		
-		cp ../resources/structure_mainparams ${{temp_folder}}/mainparams
+		cp {config[resource_dir]}/structure_mainparams ${{temp_folder}}/mainparams
 		echo \"#define MAXPOPS {wildcards.struct_k}\" >> ${{temp_folder}}/mainparams
 		echo \"#define BURNIN {config[structure_burnin]}\" >> ${{temp_folder}}/mainparams
 		echo \"#define NUMREPS {config[structure_numreps]}\" >> ${{temp_folder}}/mainparams
@@ -106,7 +106,7 @@ rule run_structure:
 		echo \"#define PLOIDY {config[max_ploidy]}\" >> ${{temp_folder}}/mainparams
 		echo \"#define NUMINDS ${{NINDS}}\" >> ${{temp_folder}}/mainparams
 		echo \"#define NUMLOCI ${{NLOCI}}\" >> ${{temp_folder}}/mainparams
-		cp ../resources/structure_extraparams ${{temp_folder}}/extraparams
+		cp {config[resource_dir]}/structure_extraparams ${{temp_folder}}/extraparams
 		structure -i ${{temp_folder}}/structure_input -o ${{temp_folder}}/structure_output -m ${{temp_folder}}/mainparams -e ${{temp_folder}}/extraparams >> {log} 2>>{log}	
 		cp ${{temp_folder}}/structure_output_f {output} 
 		"""
@@ -167,7 +167,7 @@ rule run_entropy:
 	input:
 		entropy_input=config["temp_output"]+"/{species}_ld_pruned.mpgl",
 		entropy_qk_file=config["temp_output"]+"/{species}_qk{entropy_k}",
-		ploidy_list="../resources/{species}_ploidies.lst"
+		ploidy_list=config["resource_dir"]+"/{species}_ploidies.lst"
 	output:
 		entropy_out_hdf5=config["temp_output"]+"/{species}_{entropy_k}_{entropy_rep}_entropy.hdf5",
 		entropy_out_mcmc_q=config["temp_output"]+"/{species}_{entropy_k}_{entropy_rep}_entropyq.mcmc",
@@ -238,11 +238,11 @@ rule entropy_assess_param_convergence:
 rule plot_entropy:
 	input:
 		entropy_out_posterior_q_all=expand("{TEMP_OUT}/{{species}}_{entropy_k}_allentropypostq.tsv",TEMP_OUT=config["temp_output"], entropy_k=range(2,config["max_K"]+1)),
-		ploidy_list="../resources/{species}_ploidies.lst",
-		pop_map="../resources/{species}_pop_map.tsv"
+		ploidy_list=config["resource_dir"]+"/{species}_ploidies.lst",
+		pop_map=config["resource_dir"]+"/{species}_pop_map.tsv"
 	output:
-		entropy_out_posterior_q_all_pdf=expand("../results/entropy/{{species}}_{entropy_k}_allentropypostq.pdf",TEMP_OUT=config["temp_output"], entropy_k=range(2,config["max_K"]+1)),
-		entropy_rdata="../results/entropy/{species}_entropy.Rdata"
+		entropy_out_posterior_q_all_pdf=expand("{RESULTS}/entropy/{{species}}_{entropy_k}_allentropypostq.pdf",RESULTS=config["result_dir"], entropy_k=range(2,config["max_K"]+1)),
+		entropy_rdata=config["result_dir"]+"/entropy/{species}_entropy.Rdata"
 	threads: 1 
 	resources: 
 		mem_mb=8000,
@@ -262,19 +262,19 @@ rule plot_entropy:
 		trap 'rm -rf $temp_folder' TERM EXIT
 		cp {input} $temp_folder
 		Rscript scripts/plot_entropy.R $temp_folder/{wildcards.species}_ploidies.lst $temp_folder/{wildcards.species}_pop_map.tsv $temp_folder/entropy_plot.Rdata $temp_folder/{wildcards.species}_{{2..{config[max_K]}}}_allentropypostq.tsv $temp_folder/{wildcards.species}_{{2..{config[max_K]}}}_allentropypostq.pdf >> {log} 2>> {log}
-		mkdir -p ../results/entropy
+		mkdir -p {config[results]}/entropy
 		mv $temp_folder/entropy_plot.Rdata {output.entropy_rdata}
-		mv $temp_folder/*.pdf ../results/entropy
+		mv $temp_folder/*.pdf {config[results]}/entropy
 		"""
 
 rule plot_structure:
 	input:
 		structure_out_clumpp_all=expand("{TEMP_OUT}/{{species}}_{struct_k}.clumpp",TEMP_OUT=config["temp_output"], struct_k=range(2,config["max_K"]+1)),
-		ploidy_list="../resources/{species}_ploidies.lst",
-		pop_map="../resources/{species}_pop_map.tsv"
+		ploidy_list=config["resource_dir"]+"/{species}_ploidies.lst",
+		pop_map=config["resource_dir"]+"/{species}_pop_map.tsv"
 	output:
-		structure_plot_clumpp_all=expand("../results/structure/{{species}}_{struct_k}_allstructureq.pdf", struct_k=range(2,config["max_K"]+1)),
-		structure_rdata="../results/structure/{species}_structure.Rdata"
+		structure_plot_clumpp_all=expand("{RESULTS}/structure/{{species}}_{struct_k}_allstructureq.pdf",RESULTS=config["result_dir"], struct_k=range(2,config["max_K"]+1)),
+		structure_rdata=config["result_dir"]+"/structure/{species}_structure.Rdata"
 	threads: 1 
 	resources: 
 		mem_mb=8000,
@@ -294,8 +294,8 @@ rule plot_structure:
 		trap 'rm -rf $temp_folder' TERM EXIT
 		cp {input} $temp_folder
 		Rscript scripts/plot_structure.R $temp_folder/{wildcards.species}_ploidies.lst $temp_folder/{wildcards.species}_pop_map.tsv $temp_folder/structure_plot.Rdata $temp_folder/{wildcards.species}_{{2..{config[max_K]}}}.clumpp $temp_folder/{wildcards.species}_{{2..{config[max_K]}}}_allstructureq.pdf >> {log} 2>> {log}
-		mkdir -p ../results/structure
+		mkdir -p {config[result_dir]}/structure
 		mv $temp_folder/structure_plot.Rdata {output.structure_rdata}
-		mv $temp_folder/*.pdf ../results/structure
+		mv $temp_folder/*.pdf {config[result_dir]}/structure
 		"""
 

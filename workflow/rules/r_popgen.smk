@@ -23,8 +23,8 @@ rule make_PCA:
 		trap 'rm -rf $temp_folder' TERM EXIT
 		mkdir -p $temp_folder
 		cp {input.vcf_input} $temp_folder/{wildcards.species}.vcf.gz
-		Rscript scripts/make_PCA.r $temp_folder/{{wildcards.species}.vcf.gz
-} $temp_folder/{wildcards.species}_pca_pcs.tsv $temp_folder/{wildcards.species}_pca_eigen.tsv $temp_folder/{wildcards.species}_PCA.pdf >> {log} 2>> {log}
+		Rscript scripts/make_PCA.r $temp_folder/{wildcards.species}.vcf.gz
+ $temp_folder/{wildcards.species}_pca_pcs.tsv $temp_folder/{wildcards.species}_pca_eigen.tsv $temp_folder/{wildcards.species}_PCA.pdf >> {log} 2>> {log}
 		cp $temp_folder/{wildcards.species}_pca_pcs.tsv {output.PCA_PCs}
 		cp $temp_folder/{wildcards.species}_pca_eigen.tsv {output.PCA_eigenvalues}
 		cp $temp_folder/{wildcards.species}_PCA.pdf {output.PCA_plot}
