@@ -262,9 +262,9 @@ rule plot_entropy:
 		trap 'rm -rf $temp_folder' TERM EXIT
 		cp {input} $temp_folder
 		Rscript scripts/plot_entropy.R $temp_folder/{wildcards.species}_ploidies.lst $temp_folder/{wildcards.species}_pop_map.tsv $temp_folder/entropy_plot.Rdata $temp_folder/{wildcards.species}_{{2..{config[max_K]}}}_allentropypostq.tsv $temp_folder/{wildcards.species}_{{2..{config[max_K]}}}_allentropypostq.pdf >> {log} 2>> {log}
-		mkdir -p {config[results]}/entropy
+		mkdir -p {config[result_dir]}/entropy
 		mv $temp_folder/entropy_plot.Rdata {output.entropy_rdata}
-		mv $temp_folder/*.pdf {config[results]}/entropy
+		mv $temp_folder/*.pdf {config[result_dir]}/entropy
 		"""
 
 rule plot_structure:
