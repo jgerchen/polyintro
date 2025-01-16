@@ -3,9 +3,10 @@ library(vcfR)
 
 args = commandArgs(trailingOnly=TRUE)
 vcf_input<-args[1]
-pca_PCs_out<-args[2]
-pca_Eigenvalues_out<-args[3]
-pca_plot<-args[4]
+pop_map<-args[2]
+pca_PCs_out<-args[3]
+pca_Eigenvalues_out<-args[4]
+pca_plot<-args[5]
 #Adegenet functions taken from https://github.com/mbohutinska/PolyplChapter and extended to work with triploids
 vcfR2genlight.tetra <- function (x, n.cores = 1) 
 {
@@ -168,23 +169,45 @@ glPcaFast <- function(x,
   return(res)
 }
 
+
+dip_colour<-"#1e90ff"
+tet_colour<-"#ffa500"
+tri_colour<-"#DB3192"
+#no 5x colour yet
+pent_colour<-"#bcdb31"
+hex_colour<-"#7cfc00"
 # ---------------------------------------------------------
 #read VCF
 vcf <- read.vcfR(vcf_input)
+pops<-read.table(pop_map, sep="\t", header=FALSE, col.names=c("ind", "pop", "ploidy"))
 aa.genlight <- vcfR2genlight.tetra(vcf)
 locNames(aa.genlight) <- paste(vcf@fix[,1],vcf@fix[,2],sep="_") # add real SNP.names
-pop(aa.genlight)<-substr(indNames(aa.genlight),1,5)  # add pop names
+indnames<-indNames(aa.genlight)
+#popnames<-rep(NA, length(indnames))
+#for(i in 1:length(indnames)){
+#  popnames[i]<-pops$pop[pops$ind==indnames[i]]
+#}
+pop_order<-match(indnames,pops$ind)
+warnings()
+pop(aa.genlight)<-pops$pop[pop_order]
 #make PCA
 pca.1 <- glPcaFast(aa.genlight, nf=300)
 #write PCA results
 write.table(pca.1$scores,file=pca_PCs_out ,quote=FALSE)
 write.table(pca.1$eig,file=pca_Eigenvalues_out,quote=FALSE)
 #make plot
+col_vector<-pops$ploidy
+col_vector[col_vector==2]<-dip_colour
+col_vector[col_vector==3]<-tri_colour
+col_vector[col_vector==4]<-tet_colour
+col_vector[col_vector==5]<-pent_colour
+col_vector[col_vector==6]<-hex_colour
+
 pdf (pca_plot, width=12, height=8)
 par(mar=c(5.1, 4.1, 0.5, 8.1), xpd=TRUE)
-plot(pca.1$scores, xlab=paste(round((pca.1$eig[1]/sum(pca.1$eig)*100),1)," %"), ylab=paste(round((pca.1$eig[2]/sum(pca.1$eig)*100),1)," %"), col=ploidy(aa.genlight), pch=as.numeric(pop(aa.genlight)))
+plot(pca.1$scores, xlab=paste(round((pca.1$eig[1]/sum(pca.1$eig)*100),1)," %"), ylab=paste(round((pca.1$eig[2]/sum(pca.1$eig)*100),1)," %"), col=col_vector[pop_order], pch=as.numeric(pop(aa.genlight)))
 legend("topright",legend=levels(pop(aa.genlight)), pch=unique(as.numeric(pop(aa.genlight))), inset=c(-0.15,0), title="Pop")
-legend("bottomright",legend=unique(ploidy(aa.genlight)), col=unique(ploidy(aa.genlight)) , pch=19, inset=c(-0.1,0), title="Ploidy")
+legend("bottomright",legend=unique(col_vector), col=unique(col_vector) , pch=19, inset=c(-0.1,0), title="Ploidy")
 dev.off()
 
 

@@ -39,14 +39,14 @@ with gzip.open(input_gzip, 'rt') as gzVCF:
 	for line in gzVCF:
 		if line[0]=="#":
 			if line[1]!="#":
-				ind_list=line.strip().split("\t")[9:]			
+				ind_list=line.strip().split("\t")[9:]
 		else:
 			pos_cats=line.strip().split("\t")
-			genotype_list.append(pos_cats[0]+"_"+pos_cats[1])	
-			genotypes_l1.append([genotype_dictionary_l1[i.split(":")[0].replace("|", "/")] for i in pos_cats[9:]])
-			genotypes_l2.append([genotype_dictionary_l2[i.split(":")[0].replace("|", "/")] for i in pos_cats[9:]])
-			genotypes_l3.append([genotype_dictionary_l3[i.split(":")[0].replace("|", "/")] for i in pos_cats[9:]])
-			genotypes_l4.append([genotype_dictionary_l4[i.split(":")[0].replace("|", "/")] for i in pos_cats[9:]])
+			genotype_list.append(pos_cats[0]+"_"+pos_cats[1])
+			genotypes_l1.append([genotype_dictionary_l1["/".join(sorted(i.split(":")[0].replace("|", "/").split("/")))] for i in pos_cats[9:]])
+			genotypes_l2.append([genotype_dictionary_l2["/".join(sorted(i.split(":")[0].replace("|", "/").split("/")))] for i in pos_cats[9:]])
+			genotypes_l3.append([genotype_dictionary_l3["/".join(sorted(i.split(":")[0].replace("|", "/").split("/")))] for i in pos_cats[9:]])
+			genotypes_l4.append([genotype_dictionary_l4["/".join(sorted(i.split(":")[0].replace("|", "/").split("/")))] for i in pos_cats[9:]])
 with open(output_structure, "w") as struct_out:
 	struct_out.write("\t\t"+"\t".join(genotype_list)+"\n")
 	for ind_i in range(len(ind_list)):

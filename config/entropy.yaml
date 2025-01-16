@@ -16,8 +16,10 @@ max_ploidy: 4
 #prune_vcf_minf: 0.05
 #prune_vcf_maxf: 0.95
 #prune_vcf_popFlagLength: 5
-prune_vcf_window_size: 100
+prune_vcf_window_size: "100kb"
+prune_vcf_max_sites_per_window: 10
 prune_vcf_max_ld: 0.2
+prune_vcf_minAF: 0.1
 
 #options STRUCTURE and entropy
 #maximum numbers of clusters to infer

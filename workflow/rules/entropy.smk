@@ -1,49 +1,46 @@
-configfile: "../config/entropy.yaml"
+configfile: workflow.source_path("../../config/entropy.yaml")
 
 rule prune_vcf:
 	input:
 		vcf_input=config["input_vcf"],
-		prune_individuals=config["resource_dir"]+"/{species}_prune_vcf_individuals.lst",
+#		prune_individuals=config["resource_dir"]+"/{species}_prune_vcf_individuals.lst",
 		pop_map=config["resource_dir"]+"/{species}_pop_map.tsv"
 	output:
-		vcf_pruned=config["temp_output"]+"/{species}_ld_pruned.vcf.gz",
-		structure_pruned=config["temp_output"]+"/{species}_ld_pruned.struct"
+		vcf_pruned=config["temp_output"]+"/{species}_ld.pruned.vcf.gz",
+		structure_pruned=config["temp_output"]+"/{species}_ld.pruned.struct"
 	threads: 1
 	resources: 
 		mem_mb=8000,
-		disk_mb=8000,
-		runtime="2:00:00"
-	#conda:
-	#	"../envs/prune_vcf.yaml"
+		disk_mb=40000,
+		runtime="4h"
+	params:
+		vcf_to_struct_script=workflow.source_path("../scripts/vcf_to_structure.py")
 	log:	config["log_dir"]+"/{species}_prune_vcf.log"
 	shell:
 		"""
-		
 		if [ {config[load_cluster_code]} -eq 1 ]
 		then
 			source {config[prerun_scripts_dir]}/prune_vcf.sh
 		fi
+		cp {params.vcf_to_struct_script} .
 		temp_folder={config[temp_dir]}/prune_vcf_folder
-		mkdir -p $temp_folder 		
+		mkdir -p $temp_folder
 		trap 'rm -rf $temp_folder' TERM EXIT
 		cp {input.vcf_input} ${{temp_folder}}/vcf_input.vcf.gz
-		cp {input.prune_individuals} ${{temp_folder}}/prune_individuals.lst
-		cp {input.pop_map} ${{temp_folder}}/pop_map.tsv
-		python3 scripts/make_plink_input.py -v ${{temp_folder}}/vcf_input.vcf.gz -i ${{temp_folder}}/prune_individuals.lst -o ${{temp_folder}}/vcf_pruned_plink.vcf.gz >> {log} 2>> {log} 
-		plink2 --bad-ld --allow-extra-chr --vcf ${{temp_folder}}/vcf_pruned_plink.vcf.gz --indep-pairwise {config[prune_vcf_window_size]}kb 1 {config[prune_vcf_max_ld]} --out ${{temp_folder}}/ld_pruned >> {log} 2>> {log}
-		python3 scripts/subset_vcf.py -v ${{temp_folder}}/vcf_input.vcf.gz -i ${{temp_folder}}/ld_pruned.prune.in -o ${{temp_folder}}/vcf_pruned_final.vcf.gz >> {log} 2>> {log} 
+		cp {input.pop_map} ${{temp_folder}}
+		bcftools +prune -m {config[prune_vcf_max_ld]} -w {config[prune_vcf_window_size]} -n {config[prune_vcf_max_sites_per_window]} ${{temp_folder}}/vcf_input.vcf.gz | bcftools view -q {config[prune_vcf_minAF]}:minor -O z -o ${{temp_folder}}/vcf_pruned_final.vcf.gz 
 		cp ${{temp_folder}}/vcf_pruned_final.vcf.gz {output.vcf_pruned}
-		python3 scripts/vcf_to_structure.py -v ${{temp_folder}}/vcf_pruned_final.vcf.gz -p ${{temp_folder}}/pop_map.tsv -o ${{temp_folder}}/vcf_pruned_final.struct >> {log} 2>>  {log} 
+		python3 vcf_to_structure.py -v ${{temp_folder}}/vcf_pruned_final.vcf.gz -p ${{temp_folder}}/{wildcards.species}_pop_map.tsv -o ${{temp_folder}}/vcf_pruned_final.struct 
 		cp ${{temp_folder}}/vcf_pruned_final.struct {output.structure_pruned}
 		"""
 #make entropy input first, read ploidy, num inds and loci from here
 rule make_entropy_input:
 	input:
-		vcf_pruned=config["temp_output"]+"/{species}_ld_pruned.vcf.gz",
+		vcf_pruned=config["temp_output"]+"/{species}_ld.pruned.vcf.gz",
 		ploidy_list=config["resource_dir"]+"/{species}_ploidies.lst",
 		PCA_PCs=config["temp_output"]+"/{species}_pca_pcs.tsv"
 	output:
-		entropy_input=config["temp_output"]+"/{species}_ld_pruned.mpgl",
+		entropy_input=config["temp_output"]+"/{species}_ld.pruned.mpgl",
 		entropy_qk_files=expand("{TEMP_OUT}/{{species}}_qk{K}",TEMP_OUT=config["temp_output"], K=range(2,int(config["max_K"])+1))
 	#conda:
 	#	"../envs/entropy_input.yaml"
@@ -52,7 +49,7 @@ rule make_entropy_input:
 	resources: 
 		mem_mb=2000,
 		disk_mb=4000,
-		runtime="1:00:00"
+		runtime="1h"
 	shell:
 		"""
 		if [ {config[load_cluster_code]} -eq 1 ]
@@ -73,15 +70,14 @@ rule make_entropy_input:
 		"""
 rule run_structure:
 	input:
-		entropy_input=config["temp_output"]+"/{species}_ld_pruned.mpgl",
-		structure_pruned=config["temp_output"]+"/{species}_ld_pruned.struct"
+		structure_pruned=config["temp_output"]+"/{species}_ld.pruned.struct"
 	output:
 		structure_output=config["temp_output"]+"/{species}_{struct_k}_{struct_rep}_structure.out"
 	threads: 1
 	resources: 
 		mem_mb=2000,
 		disk_mb=4000,
-		runtime="4:00:00"
+		runtime="4h"
 	#conda:
 	#	"../envs/structure.yaml"
 	log:	config["log_dir"]+"/{species}_k{struct_k}_rep{struct_rep}_structure.log"
@@ -92,11 +88,14 @@ rule run_structure:
 			source {config[prerun_scripts_dir]}/structure.sh
 		fi
 		temp_folder={config[temp_dir]}/structure_{wildcards.species}_{wildcards.struct_k}_{wildcards.struct_rep}
-		mkdir -p $temp_folder 		
+		mkdir -p $temp_folder
 		trap 'rm -rf $temp_folder' TERM EXIT
-		NINDS=$(head -n 1 {input.entropy_input} | cut -d \" \" -f 1)
-		NLOCI=$(head -n 1 {input.entropy_input} | cut -d \" \" -f 2)
-		cp {input.structure_pruned} ${{temp_folder}}/structure_input		
+		cp {input.structure_pruned} ${{temp_folder}}/structure_input
+		NROWS_INP=$(wc -l ${{temp_folder}}/structure_input | cut -d ' ' -f 1)
+    NROWS_NOHEAD=$((NROWS_INP-1))
+    NINDS=$((NROWS_NOHEAD/4))
+    NCOLS_INP=$(head -n 1 ${{temp_folder}}/structure_input | awk -F'\\t' '{{ print NF-1 }}')
+		NLOCI=$((NCOLS_INP-1))
 		cp {config[resource_dir]}/structure_mainparams ${{temp_folder}}/mainparams
 		echo \"#define MAXPOPS {wildcards.struct_k}\" >> ${{temp_folder}}/mainparams
 		echo \"#define BURNIN {config[structure_burnin]}\" >> ${{temp_folder}}/mainparams
@@ -113,7 +112,8 @@ rule run_structure:
 rule clumpp_structure_results:
 	input:
 		structure_output=expand("{TEMP_OUT}/{{species}}_{{struct_k}}_{struct_rep}_structure.out", TEMP_OUT=config["temp_output"], struct_rep=range(1, int(config["structure_replicate_runs"])+1)),
-		entropy_input=config["temp_output"]+"/{species}_ld_pruned.mpgl"
+		#entropy_input=config["temp_output"]+"/{species}_ld.pruned.mpgl"
+		structure_pruned=config["temp_output"]+"/{species}_ld.pruned.struct"
 	output:
 		clumpp_output=config["temp_output"]+"/{species}_{struct_k}.clumpp",
 		clumpp_misc_out=config["temp_output"]+"/{species}_{struct_k}_misc.clumpp"
@@ -121,7 +121,7 @@ rule clumpp_structure_results:
 	resources: 
 		mem_mb=2000,
 		disk_mb=4000,
-		runtime="1:00:00"
+		runtime="1h"
 	log:	config["log_dir"]+"/{species}_k{struct_k}_clumpp.log"
 	#conda:
 	#	"../envs/structure.yaml"
@@ -131,20 +131,21 @@ rule clumpp_structure_results:
 		then
 			source {config[prerun_scripts_dir]}/structure.sh
 		fi
-		NINDS=$(head -n 1 {input.entropy_input} | cut -d \" \" -f 1)
 		temp_folder={config[temp_dir]}/clumpp_{wildcards.species}_{wildcards.struct_k}
-		mkdir -p $temp_folder 		
+		mkdir -p $temp_folder
 		trap 'rm -rf $temp_folder' TERM EXIT
-		cp {input} $temp_folder
+		cp {input.structure_pruned} ${{temp_folder}}/structure_input
+		NROWS_INP=$(wc -l ${{temp_folder}}/structure_input | cut -d ' ' -f 1)
+    NROWS_NOHEAD=$((NROWS_INP-1))
+    NINDS=$((NROWS_NOHEAD/4))
+		cp {input.structure_output} $temp_folder
 		echo "DATATYPE 0" > ${{temp_folder}}/mainparams	
 		#make indfile from structure outputs
 		for struct_out in $temp_folder/*_structure.out
 		do
 			grep -A $NINDS \"(%Miss)\" $struct_out | tail -n $NINDS | awk '{{s=\"\"; for (i=6; i<=NF; i++) s=s $i \"\\t\"; print $1\"\\t\"$1\"\\t(0)\\t\"$4\"\\t:\\t\"s}}' >> $temp_folder/clumpp_indfile
 			echo -e \"\\n\" >> $temp_folder/clumpp_indfile
-
 		done
-		
 		echo \"DATATYPE 0\" > ${{temp_folder}}/mainparams	
 		echo \"INDFILE ${{temp_folder}}/clumpp_indfile\" >> ${{temp_folder}}/mainparams	
 		echo \"OUTFILE ${{temp_folder}}/clumpp_out\">> ${{temp_folder}}/mainparams
@@ -159,13 +160,13 @@ rule clumpp_structure_results:
 		echo \"ORDER_BY_RUN 0\" >> ${{temp_folder}}/mainparams
 		echo \"PRINT_EVERY_PERM 0\" >> ${{temp_folder}}/mainparams
 		echo \"PRINT_PERMUTED_DATA 0\" >> ${{temp_folder}}/mainparams
-		CLUMPP ${{temp_folder}}/mainparams >> {log} 2>> {log} 
+		CLUMPP ${{temp_folder}}/mainparams 
 		mv  ${{temp_folder}}/clumpp_out {output.clumpp_output} 
 		mv  ${{temp_folder}}/clumpp_misc {output.clumpp_misc_out}
 		"""
 rule run_entropy:
 	input:
-		entropy_input=config["temp_output"]+"/{species}_ld_pruned.mpgl",
+		entropy_input=config["temp_output"]+"/{species}_ld.pruned.mpgl",
 		entropy_qk_file=config["temp_output"]+"/{species}_qk{entropy_k}",
 		ploidy_list=config["resource_dir"]+"/{species}_ploidies.lst"
 	output:
@@ -177,7 +178,7 @@ rule run_entropy:
 	resources: 
 		mem_mb=8000,
 		disk_mb=4000,
-		runtime="24:00:00"
+		runtime="24h"
 	log:	config["log_dir"]+"/{species}_k{entropy_k}_rep{entropy_rep}_entropy.log"
 	#conda:
 	#	"../envs/entropy.yaml"
@@ -213,7 +214,7 @@ rule entropy_assess_param_convergence:
 	resources: 
 		mem_mb=2000,
 		disk_mb=4000,
-		runtime="1:00:00"
+		runtime="1h"
 	log:	config["log_dir"]+"/{species}_k{entropy_k}_entropy_convergence.log"
 	#conda:
 	#	"../envs/entropy.yaml"
@@ -247,7 +248,7 @@ rule plot_entropy:
 	resources: 
 		mem_mb=8000,
 		disk_mb=4000,
-		runtime="1:00:00"
+		runtime="1h"
 	log:	config["log_dir"]+"/{species}_plot_entropy.log"
 	#conda:
 	#	"../envs/plot_rmd.yaml"
@@ -270,16 +271,19 @@ rule plot_entropy:
 rule plot_structure:
 	input:
 		structure_out_clumpp_all=expand("{TEMP_OUT}/{{species}}_{struct_k}.clumpp",TEMP_OUT=config["temp_output"], struct_k=range(2,config["max_K"]+1)),
-		ploidy_list=config["resource_dir"]+"/{species}_ploidies.lst",
+		ploidy_list=config["resource_dir"]+"/{species}_ploidies.tsv",
 		pop_map=config["resource_dir"]+"/{species}_pop_map.tsv"
 	output:
-		structure_plot_clumpp_all=expand("{RESULTS}/structure/{{species}}_{struct_k}_allstructureq.pdf",RESULTS=config["result_dir"], struct_k=range(2,config["max_K"]+1)),
+    #structure_plot_clumpp_all=expand("{RESULTS}/structure/{{species}}_{struct_k}_allstructureq.pdf",RESULTS=config["result_dir"], struct_k=range(2,config["max_K"]+1)),
+		structure_plot_clumpp_all=[report(config["result_dir"]+"/structure/{species}_"+str(k)+"_allstructureq.pdf", category="structure", labels={"k":str(k)}) for k in range(2, config["max_K"]+1)],
 		structure_rdata=config["result_dir"]+"/structure/{species}_structure.Rdata"
 	threads: 1 
 	resources: 
 		mem_mb=8000,
 		disk_mb=4000,
-		runtime="1:00:00"
+		runtime="1h"
+	params:
+		plot_struct_script=workflow.source_path("../scripts/plot_structure.R")
 	log:	config["log_dir"]+"/{species}_plot_structure.log"
 	#conda:
 	#	"../envs/plot_rmd.yaml"
@@ -287,13 +291,14 @@ rule plot_structure:
 		"""
 		if [ {config[load_cluster_code]} -eq 1 ]
 		then
-			source {config[prerun_scripts_dir]}/plot_rmd.sh
+			source {config[prerun_scripts_dir]}/structure.sh
 		fi
 		temp_folder={config[temp_dir]}/plot_structure_{wildcards.species}
-		mkdir -p $temp_folder 		
+		mkdir -p $temp_folder
 		trap 'rm -rf $temp_folder' TERM EXIT
 		cp {input} $temp_folder
-		Rscript scripts/plot_structure.R $temp_folder/{wildcards.species}_ploidies.lst $temp_folder/{wildcards.species}_pop_map.tsv $temp_folder/structure_plot.Rdata $temp_folder/{wildcards.species}_{{2..{config[max_K]}}}.clumpp $temp_folder/{wildcards.species}_{{2..{config[max_K]}}}_allstructureq.pdf >> {log} 2>> {log}
+		cp {params.plot_struct_script} $temp_folder
+		Rscript $temp_folder/plot_structure.R $temp_folder/{wildcards.species}_ploidies.tsv $temp_folder/{wildcards.species}_pop_map.tsv $temp_folder/structure_plot.Rdata $temp_folder/{wildcards.species}_{{2..{config[max_K]}}}.clumpp $temp_folder/{wildcards.species}_{{2..{config[max_K]}}}_allstructureq.pdf >> {log} 2>> {log}
 		mkdir -p {config[result_dir]}/structure
 		mv $temp_folder/structure_plot.Rdata {output.structure_rdata}
 		mv $temp_folder/*.pdf {config[result_dir]}/structure

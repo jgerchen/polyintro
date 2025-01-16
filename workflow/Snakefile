@@ -1,3 +1,4 @@
+ruleorder: run_treemix > make_treemix_input > make_PCA > stampp_neighbornet > plot_structure > prune_vcf
 include: "rules/entropy.smk"
 include: "rules/r_popgen.smk"
-
+include: "rules/treemix.smk"
