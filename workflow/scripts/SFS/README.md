@@ -11,7 +11,7 @@ python3 (uses only standard library)
 plotting script for simple SFS (plot_SFS.R):
 R (uses only base R)
 
-plotting script for 2d SFS SFS (plot_SFS2d.R):
+plotting script for 2d SFS (plot_SFS2d.R):
 R with [viridis](https://cran.r-project.org/web/packages/viridis/index.html) or [viridisLite](https://cran.r-project.org/web/packages/viridisLite/index.html)
 
 ## Usage
@@ -27,17 +27,17 @@ Where:
 
 --pop_map is a tab separated file that assigns individuals to populations and that defines to how many haploid genome copies each population should be subsampled to to account for missing data (it only uses the first entry for each population). The file should look as follows:
 
-individual1 <TAB> population1 <TAB> 8
+individual1&lt;TAB&gt;population&lt;TAB&gt;18
 
-individual2 <TAB> population1 <TAB> 8
+individual2&lt;TAB&gt;population1&lt;TAB&gt;8
 
-individual3 <TAB> population1 <TAB> 8
+individual3&lt;TAB&gt;population1&lt;TAB&gt;8
 
-individual4 <TAB> population2 <TAB> 4
+individual4&lt;TAB&gt;population2&lt;TAB&gt;4
 
-individual5 <TAB> population2 <TAB> 4
+individual5&lt;TAB&gt;population2&lt;TAB&gt;4
 
-individual6 <TAB> population2 <TAB> 4
+individual6&lt;TAB&gt;population2&lt;TAB&gt;4
 
 Let's assume individuals in population1 are tetraploid and individuals in population2 are diploid. In both cases we would subsample our data to two individuals, note that population1 has double the number of haploid genome copies because its tetraploid. This will allow us to have sites with missing data for one individual in each population, sites with more missing data will be ignored.
 
