@@ -1,6 +1,6 @@
 # Scripts for generating and plotting side frequency spectra from mixed-ploidy VCF files
 ## Introduction
-This script generates simple and 2d site frequency spectra (SFS) from VCF files, allowing for variation in ploidy. In addition, it deals with the presence of missing data by subsampling alleles per population to a number of haplotyper defined by the user and only sides, counting only sides that are above the haplotype threshold. It generates regular and folded SFSs.
+The main python script generates simple and 2d site frequency spectra (SFS) from VCF files, allowing for variation in ploidy using biallelic and invariant sites. It deals with the presence of missing data by subsampling alleles per population to a number of haplotypes defined by the user. It generates regular and folded SFSs.
 
 In addition, R scripts for plotting the results are provided.
 
