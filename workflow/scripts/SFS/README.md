@@ -1,6 +1,6 @@
 # Scripts for generating and plotting side frequency spectra from mixed-ploidy VCF files
 ## Introduction
-The main python script generates simple and 2d site frequency spectra (SFS) from VCF files, allowing for variation in ploidy using biallelic and invariant sites. It deals with the presence of missing data by subsampling alleles per population to a number of haplotypes defined by the user. It generates regular and folded SFSs.
+The main python script generates simple and 2d site frequency spectra (SFS) from VCF files, allowing for variation in ploidy using biallelic and invariant sites. It deals with the presence of missing data by subsampling alleles per population to a number defined by the user. It generates regular and folded SFSs.
 
 In addition, R scripts for plotting the results are provided.
 
@@ -27,7 +27,7 @@ Where:
 
 --pop_map is a tab separated file that assigns individuals to populations and that defines to how many haploid genome copies each population should be subsampled to to account for missing data (it only uses the first entry for each population). The file should look as follows:
 
-individual1&lt;TAB&gt;population&lt;TAB&gt;18
+individual1&lt;TAB&gt;population1&lt;TAB&gt;8
 
 individual2&lt;TAB&gt;population1&lt;TAB&gt;8
 
@@ -39,7 +39,7 @@ individual5&lt;TAB&gt;population2&lt;TAB&gt;4
 
 individual6&lt;TAB&gt;population2&lt;TAB&gt;4
 
-Let's assume individuals in population1 are tetraploid and individuals in population2 are diploid. In both cases we would subsample our data to two individuals, note that population1 has double the number of haploid genome copies because its tetraploid. This will allow us to have sites with missing data for one individual in each population, sites with more missing data will be ignored.
+Let's assume individuals in population1 are tetraploid and individuals in population2 are diploid. In both cases we would subsample our data to two individuals, note that population1 has double the number of haploid genome copies because its tetraploid. This will allow us to have sites with missing data for one individual in each population, sites with more missing data will be ignored. For 2d SFS sites will be ignored if one the population in the pairwise comparison has more missing data.
 
 --out and --out_folded are normal and folded SFS for all populations defined in your pop_map
 

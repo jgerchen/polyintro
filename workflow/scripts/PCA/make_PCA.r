@@ -1,3 +1,4 @@
+
 library(adegenet)
 library(vcfR)
 
@@ -7,7 +8,7 @@ pop_map<-args[2]
 pca_PCs_out<-args[3]
 pca_Eigenvalues_out<-args[4]
 pca_plot<-args[5]
-#Adegenet functions taken from https://github.com/mbohutinska/PolyplChapter and extended to work with triploids
+#Adegenet functions taken from https://github.com/mbohutinska/PolyplChapter and extended to work with triploids, pentaploids and hexaploids
 vcfR2genlight.tetra <- function (x, n.cores = 1) 
 {
   bi <- is.biallelic(x)
@@ -40,6 +41,20 @@ vcfR2genlight.tetra <- function (x, n.cores = 1)
   x[x == "0/0/1/1"] <- 2
   x[x == "0/0/0/1"] <- 1
   x[x == "0/0/0/0"] <- 0
+  x[x == "1/1/1/1/1"] <- 5
+  x[x == "0/1/1/1/1"] <- 4
+  x[x == "0/0/1/1/1"] <- 3
+  x[x == "0/0/0/1/1"] <- 2
+  x[x == "0/0/0/0/1"] <- 1
+  x[x == "0/0/0/0/0"] <- 0
+  x[x == "1/1/1/1/1/1"] <- 6
+  x[x == "0/1/1/1/1/1"] <- 5
+  x[x == "0/0/1/1/1/1"] <- 4
+  x[x == "0/0/0/1/1/1"] <- 3
+  x[x == "0/0/0/0/1/1"] <- 2
+  x[x == "0/0/0/0/0/1"] <- 1
+  x[x == "0/0/0/0/0/0"] <- 0
+  
   if (requireNamespace("adegenet")) {
     x <- new("genlight", t(x), n.cores = n.cores)
   }
@@ -188,7 +203,7 @@ indnames<-indNames(aa.genlight)
 #  popnames[i]<-pops$pop[pops$ind==indnames[i]]
 #}
 pop_order<-match(indnames,pops$ind)
-warnings()
+#warnings()
 pop(aa.genlight)<-pops$pop[pop_order]
 #make PCA
 pca.1 <- glPcaFast(aa.genlight, nf=300)
@@ -206,8 +221,8 @@ col_vector[col_vector==6]<-hex_colour
 pdf (pca_plot, width=12, height=8)
 par(mar=c(5.1, 4.1, 0.5, 8.1), xpd=TRUE)
 plot(pca.1$scores, xlab=paste(round((pca.1$eig[1]/sum(pca.1$eig)*100),1)," %"), ylab=paste(round((pca.1$eig[2]/sum(pca.1$eig)*100),1)," %"), col=col_vector[pop_order], pch=as.numeric(pop(aa.genlight)))
-legend("topright",legend=levels(pop(aa.genlight)), pch=unique(as.numeric(pop(aa.genlight))), inset=c(-0.15,0), title="Pop")
-legend("bottomright",legend=unique(col_vector), col=unique(col_vector) , pch=19, inset=c(-0.1,0), title="Ploidy")
+legend("topright",legend=unique(pop(aa.genlight)), pch=unique(as.numeric(pop(aa.genlight))), inset=c(-0.15,0), title="Pop")
+legend("bottomright",legend=unique(pops$ploidy), col=unique(col_vector) , pch=19, inset=c(-0.1,0), title="Ploidy")
 dev.off()
 
 
