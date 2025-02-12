@@ -5,22 +5,22 @@ library(phangorn)
 library(viridis)
 args = commandArgs(trailingOnly=TRUE)
 vcf_input<-args[1]
-ploidy_map<-args[2]
-pop_map<-args[3]
-plot_heatmap_pop<-args[4]
-plot_heatmap_ind<-args[5]
-plot_nj_pop<-args[6]
-plot_nj_ind<-args[7]
-plot_neighnet_pop<-args[8]
-plot_neighnet_ind<-args[9]
-out_nei_ind_phylip<-args[10]
+#ploidy_map<-args[2]
+pop_map<-args[2]
+plot_heatmap_pop<-args[3]
+plot_heatmap_ind<-args[4]
+plot_nj_pop<-args[5]
+plot_nj_ind<-args[6]
+plot_neighnet_pop<-args[7]
+plot_neighnet_ind<-args[8]
+out_nei_ind_phylip<-args[9]
 
-ploidies<-read.table(ploidy_map, sep="\t", header=FALSE)
-pops<-read.table(pop_map, sep="\t", header=FALSE, col.names=c("ind", "pop"))
-pops$ploidies<-rep(0, length(pops$ind))
-for(i in 1:length(pops$ind)){
-  pops$ploidies[i]<-ploidies$V2[ploidies$V1==pops$ind[i]]
-}
+#ploidies<-read.table(ploidy_map, sep="\t", header=FALSE)
+pops<-read.table(pop_map, sep="\t", header=FALSE, col.names=c("ind", "pop", "ploidies"))
+#pops$ploidies<-rep(0, length(pops$ind))
+#for(i in 1:length(pops$ind)){
+#  pops$ploidies[i]<-ploidies$V2[ploidies$V1==pops$ind[i]]
+#}
 
 
 dip_colour<-"#1e90ff"
@@ -70,6 +70,19 @@ vcfR2genlight.tetra <- function (x, n.cores = 1)
   x[x == "0/0/1/1"] <- 2
   x[x == "0/0/0/1"] <- 1
   x[x == "0/0/0/0"] <- 0
+  x[x == "1/1/1/1/1"] <- 5
+  x[x == "0/1/1/1/1"] <- 4
+  x[x == "0/0/1/1/1"] <- 3
+  x[x == "0/0/0/1/1"] <- 2
+  x[x == "0/0/0/0/1"] <- 1
+  x[x == "0/0/0/0/0"] <- 0
+  x[x == "1/1/1/1/1/1"] <- 6
+  x[x == "0/1/1/1/1/1"] <- 5
+  x[x == "0/0/1/1/1/1"] <- 4
+  x[x == "0/0/0/1/1/1"] <- 3
+  x[x == "0/0/0/0/1/1"] <- 2
+  x[x == "0/0/0/0/0/1"] <- 1
+  x[x == "0/0/0/0/0/0"] <- 0
   if (requireNamespace("adegenet")) {
     x <- new("genlight", t(x), n.cores = n.cores)
   }
@@ -115,8 +128,13 @@ plot(pop_nj, "u", cex=0.7)
 dev.off()
 
 ind_nj<-nj(aa.D.ind)
+
+ind_nj_tips<-ind_nj$tip.label
+ind_nj_order<-match(ind_nj_tips, pops$ind)
+
+
 pdf(plot_nj_ind, width=15, height=15)
-plot(ind_nj, "u", cex=0.7, tip.color=pops$colours)
+plot(ind_nj, "u", cex=0.7, tip.color=pops$colours[ind_nj_order])
 dev.off()
 
 aa.splits<-neighborNet(dist(aa.D.pop))
