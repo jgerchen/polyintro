@@ -34,11 +34,11 @@ input_file=CLUMPP output
 
 pop_map_file:
 
-individual1<TAB>population<TAB>ploidy
+individual1 <TAB> population <TAB> ploidy
 
-individual2<TAB>population<TAB>ploidy
+individual2 <TAB> population <TAB> ploidy
 
-individual3<TAB>population<TAB>ploidy
+individual3 <TAB> population <TAB> ploidy
 
 output_image:
 
