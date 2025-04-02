@@ -7,3 +7,5 @@ This is a Snakemake workflow, which integrates several population genomic analys
 - [Make heatmaps, neighbor-joining trees and Neighbornets](https://github.com/jgerchen/polyintro/tree/main/workflow/scripts/nei)
 
 - [Make and plot individual and pair-wise site-frequency spectra](https://github.com/jgerchen/polyintro/tree/main/workflow/scripts/SFS)
+
+- [Make Structure input files, make CLUMPP input files and plot results](https://github.com/jgerchen/polyintro/tree/main/workflow/scripts/structure)
