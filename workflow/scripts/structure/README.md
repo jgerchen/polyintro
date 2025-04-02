@@ -8,7 +8,7 @@ vcf_to_structure.py
 
 "-o", "--output", output structure file
 
-"-p", "--populations", population map (format:individual<tab>population, further columns ignored)
+"-p", "--populations", population map (format:individual population, further columns ignored)
 
 "-m", "--max_ploidy", highest ploidy in the VCF file
 
@@ -34,11 +34,11 @@ input_file=CLUMPP output
 
 pop_map_file:
 
-individual1 <TAB> population <TAB> ploidy
+individual1 population ploidy
 
-individual2 <TAB> population <TAB> ploidy
+individual2 population ploidy
 
-individual3 <TAB> population <TAB> ploidy
+individual3 population ploidy
 
 output_image:
 
