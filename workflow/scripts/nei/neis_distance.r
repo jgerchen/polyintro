@@ -100,19 +100,26 @@ aa.genlight <- vcfR2genlight.tetra(vcf)
 locNames(aa.genlight) <- paste(vcf@fix[,1],vcf@fix[,2],sep="_") # add real SNP.names
 
 indnames<-indNames(aa.genlight)
-popnames<-rep(NA, length(indnames))
-for(i in 1:length(indnames)){
-  popnames[i]<-pops$pop[pops$ind==indnames[i]]
-}
+#popnames<-rep(NA, length(indnames))
+#for(i in 1:length(indnames)){
+#  popnames[i]<-pops$pop[pops$ind==indnames[i]]
+#}
 
-pop(aa.genlight)<-popnames  # add pop names
+pop_order<-match(indnames,pops$ind)
+pop(aa.genlight)<-pops$pop[pop_order]
+#pop(aa.genlight)<-popnames  # add pop names
+include_individuals<-indNames(aa.genlight)[is.na(pop(aa.genlight))==F]
+sub.genlight<-new("genlight",(as.matrix(aa.genlight)[include_individuals,]))
 
-aa.D.pop <- stamppNeisD(aa.genlight, pop = TRUE)   # Nei's 1972 genetic distance between pops
-aa.D.ind <- stamppNeisD(aa.genlight, pop = FALSE)   # Nei's 1972 genetic distance between pops
+new_pop_order<-match(indNames(sub.genlight),pops$ind)
+pop(sub.genlight)<-pops$pop[new_pop_order]
+
+aa.D.pop <- stamppNeisD(sub.genlight, pop = TRUE)   # Nei's 1972 genetic distance between pops
+aa.D.ind <- stamppNeisD(sub.genlight, pop = FALSE)   # Nei's 1972 genetic distance between pops
 colnames(aa.D.pop)<-rownames(aa.D.pop)
 colnames(aa.D.ind)<-rownames(aa.D.ind)
 
-#fsts<-stamppFst(aa.genlight)
+#fsts<-stamppFst(sub.genlight)
 
 pdf(plot_heatmap_pop)
 heatmap.bp(aa.D.pop)
@@ -155,3 +162,4 @@ dev.off()
 
 #write.phylip()
 stamppPhylip(aa.D.ind, out_nei_ind_phylip)
+
